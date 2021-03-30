@@ -47,7 +47,6 @@ class GetFileController extends AbstractController
         $data = $serializer->decode($content, 'csv'); // $content = ['id' => 521583, 'name' => 'symfony-docs', ...]
 
         // $this->saveDataFromCsv($data);
-
         return $data;
         // $statusCode = $response->getStatusCode(); // $statusCode = 200
         // $contentType = $response->getHeaders()['content-type'][0]; // $contentType = 'application/json'
