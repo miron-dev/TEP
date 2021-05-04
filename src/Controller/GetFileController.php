@@ -27,14 +27,13 @@ class GetFileController extends AbstractController
     }
 
     /**
-     * @return Array
-     * @Route("api/get-file", name="get_file")
+     * @Route("api/{file}", name="get_production")
      */
-    public function getDataInCsv(): array
+    public function getDataInCsv($file)
     {
         $response = $this->client->request(
             'GET',
-            'http://127.0.0.1:8001/send/file'
+            'https://127.0.0.1:8000/'.$file
         );
         $normalizer = [new ObjectNormalizer()];
         $encoders = [
@@ -42,15 +41,34 @@ class GetFileController extends AbstractController
             new XmlEncoder(),
             new YamlEncoder(),
         ];
+
+        // Detect delimiter
+        $delimiters = array( ',' => 0, ';' => 0, "\t" => 0, '|' => 0, );
+        $delimiter = '';
+        $firstLine = ''; 
+        $handle = fopen('https://127.0.0.1:8000/'.$file, 'r');
+        
+        if ($handle) { 
+            $firstLine = fgets($handle);
+            fclose($handle);
+        } if ($firstLine) { 
+            foreach ($delimiters as $delimiter => &$count) { 
+                $count = count(str_getcsv($firstLine, $delimiter));
+            } 
+            $delimiter = array_search(max($delimiters), $delimiters);
+        } else { 
+            $delimiter = key($delimiters); 
+        }
+
         $serializer = new Serializer($normalizer, $encoders);
         $content = $response->getContent(); // $content = '{"id":521583, "name":"symfony-docs", ...}'
-        $data = $serializer->decode($content, 'csv'); // $content = ['id' => 521583, 'name' => 'symfony-docs', ...]
-
+        $data = $serializer->decode($content, 'csv', [CsvEncoder::DELIMITER_KEY => $delimiter ]); // $content = ['id' => 521583, 'name' => 'symfony-docs', ...]
+        
         // $this->saveDataFromCsv($data);
-        return $data;
+        return new JsonResponse($data);
         // $statusCode = $response->getStatusCode(); // $statusCode = 200
         // $contentType = $response->getHeaders()['content-type'][0]; // $contentType = 'application/json'
-        // $content = $response->toArray(); // $content = ['id' => 521583, 'name' => 'symfony-docs', ...]
+        // // $content = $response->toArray(); // $content = ['id' => 521583, 'name' => 'symfony-docs', ...]
         // return new JsonResponse($content, $statusCode, array($contentType), true);
     }
 
