@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Test;
+use App\Service\ConsommationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,26 +28,29 @@ class GetFileController extends AbstractController
     }
 
     /**
-     * @Route("api/{file}", name="get_production")
+     * @Route("api/production", name="get_production")
      */
-    public function getDataInCsv($file)
-    {
-        $response = $this->client->request(
-            'GET',
-            'https://127.0.0.1:8000/'.$file
-        );
+    public function getDataProduction()
+    {        
+        // $response = $this->client->request(
+        //     'GET',
+        //     'https://energie.tep.pf/production'
+        // );
+
         $normalizer = [new ObjectNormalizer()];
         $encoders = [
             new CsvEncoder(),
             new XmlEncoder(),
             new YamlEncoder(),
         ];
-
+        
         // Detect delimiter
         $delimiters = array( ',' => 0, ';' => 0, "\t" => 0, '|' => 0, );
         $delimiter = '';
         $firstLine = ''; 
-        $handle = fopen('https://127.0.0.1:8000/'.$file, 'r');
+        
+        // $handle = fopen('https://127.0.0.1:8000/production', 'r');
+        $handle = fopen("ftp://data@energie.tep.pf:XE2vxxaPc5SYSp4wewY4PEW6@66.70.177.29/production.csv", "r");
         
         if ($handle) { 
             $firstLine = fgets($handle);
@@ -61,15 +65,23 @@ class GetFileController extends AbstractController
         }
 
         $serializer = new Serializer($normalizer, $encoders);
-        $content = $response->getContent(); // $content = '{"id":521583, "name":"symfony-docs", ...}'
+        $content = file_get_contents("ftp://data@energie.tep.pf:XE2vxxaPc5SYSp4wewY4PEW6@66.70.177.29/production.csv"); // $content = '{"id":521583, "name":"symfony-docs", ...}'
         $data = $serializer->decode($content, 'csv', [CsvEncoder::DELIMITER_KEY => $delimiter ]); // $content = ['id' => 521583, 'name' => 'symfony-docs', ...]
-        
+        // dd($data);
         // $this->saveDataFromCsv($data);
         return new JsonResponse($data);
         // $statusCode = $response->getStatusCode(); // $statusCode = 200
         // $contentType = $response->getHeaders()['content-type'][0]; // $contentType = 'application/json'
         // // $content = $response->toArray(); // $content = ['id' => 521583, 'name' => 'symfony-docs', ...]
         // return new JsonResponse($content, $statusCode, array($contentType), true);
+    }
+
+    /**
+     * @Route("api/consommation", name="get_consommation")
+     */
+    public function getDataConsommation(ConsommationService $conso)
+    {
+        return $conso->getData();
     }
 
     /**
